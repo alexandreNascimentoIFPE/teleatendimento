@@ -1,0 +1,24 @@
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <video></video>
+    <script>
+        window.onload = function(){
+            var constraints = { audio: true, 
+                                video:true}
+
+            navigator.mediaDevices.getUserMedia(constraints).then(function(mediaStream){
+                var video = document.querySelector('video');
+                video.srcObject = mediaStream;
+                video.play();
+            }).catch(function(err){
+                console.log(err)
+            })
+        }
+    </script>
+</body>
+</html>
