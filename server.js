@@ -1,31 +1,44 @@
 const express = require('express');
-const app = express();
-const http = require('http').Server(app);
-const io = require('socket.io')(http);
-const PORT = process.env.PORT || 3000;
+const app     = express();
+var http      = require("http").Server(app);
+var io        = require("socket.io")(http);
 
-// port setup and listening 
-http.listen(PORT, () => {
-    console.log("listening on port " + PORT)
-});
+app.use(express.static("public"));
 
-// serving our index.html 
-app.get('/', (req, res) => {
-    res.sendFile(__dirname + "/index.html")
-})
-// allows files in this folder to be served all the time
-app.use(express.static('public'));
+io.on("connection", function (socket) {
+    console.log("um usuário conectado");
+    
+    socket.on("create or join", function (room) {
+        console.log("create or join ", room);
+        var myRoom = io.sockets.adapter.rooms[room] || { length: 0};
+        var numClients = myRoom.length;
+        console.log(room,'has',numClients,'clients');
+        if (numClients == 0) {
+            socket.join(room);
+            socket.emit('created',room);
 
-// init socket 
-io.on('connection', function (socket) {
-    console.log("client is connected " + socket.id)
-    // receive the event, then send data to clients
-    socket.on('userMessage', (data) => {
-        io.sockets.emit("userMessage", data)
-    })
-    // receive the typing event, send out to clients
-    socket.on('userTyping', (data) => {
-        socket.broadcast.emit('userTyping', data)
-
+        }
+        else if (numClients == 1) {
+            socket.join(room);
+            socket.emit('joined',room);
+        }
+        else{
+            socket.emit('full',room);
+        }
     });
-})
+    socket.on('ready', function (room) {
+        socket.broadcast.to(room).emit("ready");
+    });
+    socket.on('candidate', function (event) {
+       socket.broadcast.to(event.room).emit('candidate',event); 
+    });
+    socket.on('offer', function (event) {
+        socket.broadcast.to(event.room).emit('offer',event.sdp);
+    });
+    socket.on('answer', function (event) {
+        socket.broadcast.to(event.room).emit('answer',event.sdp);
+    });
+});
+http.listen(3000, function() {
+    console.log("rodando na porta 3000");
+});
